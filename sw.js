@@ -2,7 +2,7 @@
 // Strategy: cache-first for app shell, stale-while-revalidate for fonts.
 // Apps Script API calls bypass the cache.
 
-const CACHE_VERSION = 'danish-diary-v2';
+const CACHE_VERSION = 'danish-diary-v3';
 const APP_SHELL = [
   '/',
   '/index.html',
