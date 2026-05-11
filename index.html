@@ -7,7 +7,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#1A1A2E" />
+  <meta name="theme-color" content="#0E1B17" />
 
   <!-- iOS PWA support -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -42,24 +42,24 @@
 
   <style>
     :root {
-      --bg: #FAF7F0;
+      --bg: #F4F6F5;
       --surface: #FFFFFF;
-      --ink: #1A1A2E;
-      --ink-soft: #2E2E48;
-      --muted: #6E665C;
-      --muted-soft: #9B9286;
-      --border: #ECE5D6;
-      --border-strong: #D9CFB8;
-      --accent: #C77B3D;
-      --accent-deep: #A85F25;
-      --accent-soft: rgba(199, 123, 61, 0.10);
-      --success: #3D8B5A;
-      --success-soft: rgba(61, 139, 90, 0.10);
-      --warn: #C84B1F;
-      --warn-soft: rgba(200, 75, 31, 0.10);
-      --shadow-sm: 0 1px 2px rgba(26, 26, 46, 0.05);
-      --shadow-md: 0 4px 16px rgba(26, 26, 46, 0.06), 0 1px 4px rgba(26, 26, 46, 0.04);
-      --shadow-lg: 0 24px 48px -12px rgba(26, 26, 46, 0.16), 0 8px 16px rgba(26, 26, 46, 0.04);
+      --ink: #0E1B17;
+      --ink-soft: #243935;
+      --muted: #5D6E68;
+      --muted-soft: #93A29C;
+      --border: #DCE5E0;
+      --border-strong: #B6C5BD;
+      --accent: #0F7A5C;
+      --accent-deep: #0A5C44;
+      --accent-soft: rgba(15, 122, 92, 0.10);
+      --success: #0F7A5C;
+      --success-soft: rgba(15, 122, 92, 0.10);
+      --warn: #C24A2C;
+      --warn-soft: rgba(194, 74, 44, 0.10);
+      --shadow-sm: 0 1px 2px rgba(14, 27, 23, 0.05);
+      --shadow-md: 0 4px 16px rgba(14, 27, 23, 0.06), 0 1px 4px rgba(14, 27, 23, 0.04);
+      --shadow-lg: 0 24px 48px -12px rgba(14, 27, 23, 0.16), 0 8px 16px rgba(14, 27, 23, 0.04);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -77,8 +77,8 @@
 
     body {
       background-image:
-        radial-gradient(at 80% 0%, rgba(199, 123, 61, 0.05) 0px, transparent 50%),
-        radial-gradient(at 0% 100%, rgba(26, 26, 46, 0.025) 0px, transparent 50%);
+        radial-gradient(at 80% 0%, rgba(15, 122, 92, 0.06) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(14, 27, 23, 0.025) 0px, transparent 50%);
       background-attachment: fixed;
     }
 
@@ -216,10 +216,19 @@
       font-family: 'Fraunces', serif;
       font-weight: 400;
       font-size: 40px;
-      line-height: 1;
+      line-height: 1.1;
       letter-spacing: -0.02em;
     }
     .stat-hero-value em { font-style: italic; }
+    .stat-hero-extras {
+      margin-top: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.5;
+      color: rgba(250, 233, 200, 0.78);
+    }
+    .stat-hero-extras span { display: block; }
     .stat-hero-sub {
       margin-top: 10px;
       font-size: 13px;
@@ -551,7 +560,7 @@
       place-items: center;
       cursor: pointer;
       z-index: 50;
-      box-shadow: 0 6px 18px rgba(199, 123, 61, 0.4);
+      box-shadow: 0 6px 18px rgba(15, 122, 92, 0.35);
       -webkit-tap-highlight-color: transparent;
     }
     .fab:hover { background: var(--accent-deep); }
@@ -1652,7 +1661,6 @@
     // DASHBOARD STATE
     // ============================================================
     const dashboardCache = { data: null };
-    let dashboardLoading = false;
 
     const peopleList     = document.getElementById('peopleList');
     const archivedList   = document.getElementById('archivedList');
@@ -1673,30 +1681,37 @@
       });
     }
 
+    // If a dashboard load is already running, return that same promise
+    // instead of dropping the second caller — otherwise UI flows that
+    // need fresh data right after a write (e.g. "add person → picker
+    // should show them") silently skip the refresh and look stale.
+    let _dashboardInFlight = null;
     async function loadDashboard() {
-      if (dashboardLoading) return;
-      dashboardLoading = true;
+      if (_dashboardInFlight) return _dashboardInFlight;
       setRefreshSpinning(true);
-      try {
-        if (!CONFIG.ENDPOINT || CONFIG.ENDPOINT.includes('PASTE_YOUR')) {
-          throw new Error('Set CONFIG.ENDPOINT in index.html to your Apps Script URL.');
+      _dashboardInFlight = (async () => {
+        try {
+          if (!CONFIG.ENDPOINT || CONFIG.ENDPOINT.includes('PASTE_YOUR')) {
+            throw new Error('Set CONFIG.ENDPOINT in index.html to your Apps Script URL.');
+          }
+          const j = await apiGet('dashboard');
+          if (!j.ok) throw new Error(j.error || 'Dashboard error');
+          dashboardCache.data = j;
+          renderPeople(j.people || []);
+          renderActivity(j.recent || []);
+          renderStats(j.summary || {});
+          populatePersonPicker(j.people || []);
+        } catch (err) {
+          const msg = (err && err.name === 'AbortError')
+            ? 'Request timed out — check your connection.'
+            : (err && err.message) || String(err);
+          showError("Couldn't load data", msg);
+        } finally {
+          _dashboardInFlight = null;
+          setRefreshSpinning(false);
         }
-        const j = await apiGet('dashboard');
-        if (!j.ok) throw new Error(j.error || 'Dashboard error');
-        dashboardCache.data = j;
-        renderPeople(j.people || []);
-        renderActivity(j.recent || []);
-        renderStats(j.summary || {});
-        populatePersonPicker(j.people || []);
-      } catch (err) {
-        const msg = (err && err.name === 'AbortError')
-          ? 'Request timed out — check your connection.'
-          : (err && err.message) || String(err);
-        showError("Couldn't load data", msg);
-      } finally {
-        dashboardLoading = false;
-        setRefreshSpinning(false);
-      }
+      })();
+      return _dashboardInFlight;
     }
 
     if (navigator.onLine) loadDashboard();
@@ -1809,13 +1824,14 @@
       } else if (curs.length === 1) {
         hero.textContent = formatMoney(byCur[curs[0]], curs[0]);
       } else {
-        // Multi-currency: show the largest as the headline, others as a
-        // small stacked list underneath so the visual weight stays the
-        // same as the original single-line hero.
-        const primary = curs[0];
-        hero.innerHTML = formatMoney(byCur[primary], primary)
-          + '<div style="font-size: 0.4em; color: var(--ink-soft); font-weight: 500; margin-top: 6px; line-height: 1.4;">'
-          + curs.slice(1).map((c) => '+ ' + formatMoney(byCur[c], c)).join('<br>')
+        // Multi-currency: pick the currency with the largest total as
+        // the headline; render the rest as a small stacked list below
+        // so the hero's visual weight stays the same as single-currency.
+        const primary = curs.slice().sort((a, b) => byCur[b] - byCur[a])[0];
+        const rest = curs.filter((c) => c !== primary);
+        hero.innerHTML = escapeHtml(formatMoney(byCur[primary], primary))
+          + '<div class="stat-hero-extras">'
+          + rest.map((c) => '<span>+ ' + escapeHtml(formatMoney(byCur[c], c)) + '</span>').join('')
           + '</div>';
       }
       sub.textContent = 'across ' + (s.peopleWithBalance || 0) + ' ' + ((s.peopleWithBalance || 0) === 1 ? 'person' : 'people');
@@ -2220,13 +2236,24 @@
         if (!r.ok) { showError("Couldn't save", r.error || 'Unknown error.'); return; }
         showSuccess(personId ? 'Person updated' : 'Person added', name);
         closePersonModal();
-        await loadDashboard();
-        // If we just created a new person from inside the entry modal,
-        // pre-select them so the user can finish their entry without
-        // hunting through the dropdown.
-        if (!personId && r.personId && addEntryModal.classList.contains('visible')) {
-          entryPersonSelect.value = r.personId;
+        // Optimistic update: add the new person to the local list and
+        // refresh the picker NOW so the user sees them right away,
+        // without waiting for the dashboard round-trip to come back.
+        if (!personId && r.personId) {
+          const fresh = {
+            personId: r.personId, name, phone, currency, notes,
+            archived: false, balance: 0, entryCount: 0, daysSincePayment: 0
+          };
+          const existing = Array.isArray(window.__people) ? window.__people.slice() : [];
+          existing.push(fresh);
+          populatePersonPicker(existing);
+          if (addEntryModal.classList.contains('visible')) {
+            entryPersonSelect.value = r.personId;
+            syncEntryCurrency();
+          }
         }
+        // Then refresh from server in the background for fresh balances.
+        loadDashboard();
         // If we edited the open person, refresh their drawer too.
         if (personId && currentPerson && currentPerson.personId === personId) {
           await openPersonDrawer(personId);

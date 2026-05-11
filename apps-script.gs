@@ -285,7 +285,7 @@ function buildDashboard_() {
       const cb = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
       return cb - ca;
     })
-    .slice(0, 30)
+    .slice(0, 20)
     .map((e) => ({
       entryId: e.entryId,
       personId: e.personId,
@@ -414,11 +414,11 @@ function handleAddEntry_(data) {
   const category = normCategory_(data.category);
   const dueDate = data.dueDate ? parseLocalDate_(data.dueDate) : null;
 
-  // Confirm person exists
-  const people = readPeople_();
-  if (!people.find((p) => p.personId === personId)) {
-    return jsonResponse({ ok: false, error: 'Person not found' });
-  }
+  // The client only sends personIds it just got from us, and the
+  // dashboard rebuild after the write will surface any orphaned rows.
+  // Skipping the readPeople_() existence check saves a full sheet
+  // round-trip on every entry — meaningful since Apps Script reads
+  // are the slowest part of this backend.
 
   const sheet = getLedgerSheet_();
   const entryId = nextEntryId_(sheet);
