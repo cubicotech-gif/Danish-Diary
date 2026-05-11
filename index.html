@@ -388,6 +388,84 @@
       margin: 4px 0 10px;
     }
 
+    .search-bar {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .search-bar svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted-soft);
+      pointer-events: none;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 11px 14px 11px 38px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      outline: none;
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+
+    /* Direction toggle — switches the whole app between
+       "Owes me" (receivables) and "I owe" (payables). */
+    .direction-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .dir-btn {
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: center;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .dir-btn .dir-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .dir-btn .dir-sub {
+      display: block;
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted-soft);
+    }
+    .dir-btn.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent-deep);
+    }
+    .dir-btn.active .dir-sub { color: var(--accent); }
+    body[data-direction="iOwe"] .dir-btn.active {
+      background: rgba(194, 74, 44, 0.08);
+      border-color: var(--warn);
+      color: var(--warn);
+    }
+    body[data-direction="iOwe"] .dir-btn.active .dir-sub { color: var(--warn); }
+
     /* Aging breakdown */
     .aging-card {
       background: var(--surface);
@@ -1265,6 +1343,17 @@
       <div class="header-meta" id="todayDate"></div>
     </header>
 
+    <div class="direction-toggle" role="tablist" aria-label="Direction">
+      <button class="dir-btn active" data-direction="owesMe" type="button">
+        <span class="dir-label">Owes me</span>
+        <span class="dir-sub">money coming in</span>
+      </button>
+      <button class="dir-btn" data-direction="iOwe" type="button">
+        <span class="dir-label">I owe</span>
+        <span class="dir-sub">money going out</span>
+      </button>
+    </div>
+
     <!-- ============================================================
          PEOPLE VIEW (default)
          ============================================================ -->
@@ -1329,9 +1418,35 @@
         <p class="subtitle">Every charge and repayment across all people, newest first.</p>
       </div>
 
+      <div class="search-bar">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.4"/>
+          <line x1="9.2" y1="9.2" x2="12.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <input id="activitySearch" class="input" placeholder="Search name, description, or amount" />
+      </div>
+
+      <div class="chip-row" role="tablist" aria-label="Filter by type">
+        <button class="chip active" data-afilter="all" type="button">All</button>
+        <button class="chip" data-afilter="charge" type="button">Charges</button>
+        <button class="chip" data-afilter="repayment" type="button">Repayments</button>
+        <button class="chip" data-afilter="overdue" type="button">Overdue</button>
+      </div>
+
+      <div class="chip-row" role="tablist" aria-label="Filter by time">
+        <button class="chip active" data-atime="all" type="button">All time</button>
+        <button class="chip" data-atime="7d" type="button">7 days</button>
+        <button class="chip" data-atime="30d" type="button">30 days</button>
+        <button class="chip" data-atime="month" type="button">This month</button>
+      </div>
+
+      <div class="chip-row" id="activityPersonChips" role="tablist" aria-label="Filter by person">
+        <button class="chip active" data-aperson="" type="button">Everyone</button>
+      </div>
+
       <div class="people-section">
         <div class="section-header">
-          <span class="section-title">Recent entries</span>
+          <span class="section-title" id="activitySectionTitle">Recent entries</span>
           <button class="refresh-btn" id="activityRefreshBtn" type="button" aria-label="Refresh activity">
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
               <path d="M12.5 2v3.5H9M1.5 12V8.5H5M11.5 5A4.5 4.5 0 0 0 3.2 4M2.5 9A4.5 4.5 0 0 0 10.8 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1358,56 +1473,12 @@
     <section class="view" id="statsView" role="tabpanel" aria-labelledby="tabStats">
       <div class="title-block">
         <div class="eyebrow">Stats</div>
-        <h1>Total <em>outstanding</em></h1>
-        <p class="subtitle">What you're owed, grouped by currency. Tap a card to see who owes you in that currency.</p>
+        <h1>Outstanding by <em>currency</em></h1>
+        <p class="subtitle">Tap a card to see who owes you in that currency.</p>
       </div>
 
-      <div class="stat-hero">
-        <div class="stat-hero-label">Total people owe you</div>
-        <div class="stat-hero-value" id="heroTotal"><span class="skeleton">₨000,000</span></div>
-        <div class="stat-hero-sub" id="heroSub">across — people</div>
-      </div>
-
-      <div class="section-h">By currency · tap to see who</div>
       <div class="currency-grid" id="currencyGrid">
         <div class="currency-card-empty">Loading…</div>
-      </div>
-
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-card-label">Total people</div>
-          <div class="stat-card-value" id="statTotalPeople"><span class="skeleton">00</span></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-label">With balance</div>
-          <div class="stat-card-value warn" id="statWithBalance"><span class="skeleton">00</span></div>
-        </div>
-      </div>
-
-      <div class="aging-card">
-        <div class="aging-card-title">Aging breakdown</div>
-        <div id="agingList">
-          <div class="aging-row">
-            <div class="aging-key"><span class="aging-key-dot fresh"></span>0 – 7 days</div>
-            <div class="aging-val"><span class="skeleton">0</span></div>
-          </div>
-          <div class="aging-row">
-            <div class="aging-key"><span class="aging-key-dot week"></span>8 – 30 days</div>
-            <div class="aging-val"><span class="skeleton">0</span></div>
-          </div>
-          <div class="aging-row">
-            <div class="aging-key"><span class="aging-key-dot month"></span>31 – 60 days</div>
-            <div class="aging-val"><span class="skeleton">0</span></div>
-          </div>
-          <div class="aging-row">
-            <div class="aging-key"><span class="aging-key-dot twoMonth"></span>61 – 90 days</div>
-            <div class="aging-val"><span class="skeleton">0</span></div>
-          </div>
-          <div class="aging-row">
-            <div class="aging-key"><span class="aging-key-dot old"></span>90+ days</div>
-            <div class="aging-val"><span class="skeleton">0</span></div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -1706,9 +1777,18 @@
     // ============================================================
     // API HELPERS
     // ============================================================
+    // Which side of the ledger we're currently looking at —
+    // 'owesMe'  → People + Ledger sheets (default)
+    // 'iOwe'    → PeopleIOwe + LedgerIOwe sheets
+    // Persisted in localStorage so the choice survives reloads.
+    let direction = (function () {
+      try { return localStorage.getItem('diary.direction') || 'owesMe'; }
+      catch { return 'owesMe'; }
+    })();
+
     async function apiPost(action, payload, opts) {
       opts = opts || {};
-      const body = Object.assign({ action: action, token: CONFIG.TOKEN }, payload || {});
+      const body = Object.assign({ action: action, token: CONFIG.TOKEN, direction: direction }, payload || {});
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), opts.timeoutMs || 30000);
       try {
@@ -1727,7 +1807,7 @@
     async function apiGet(action, params, opts) {
       opts = opts || {};
       const qs = new URLSearchParams(Object.assign(
-        { action: action, token: CONFIG.TOKEN, _: String(Date.now()) },
+        { action: action, token: CONFIG.TOKEN, direction: direction, _: String(Date.now()) },
         params || {}
       ));
       const controller = new AbortController();
@@ -1849,6 +1929,51 @@
       })();
       return _dashboardInFlight;
     }
+
+    // Apply persisted direction to the UI and the toggle on first paint.
+    function applyDirectionUI() {
+      document.body.setAttribute('data-direction', direction);
+      document.querySelectorAll('[data-direction]').forEach((b) => {
+        if (b.tagName === 'BUTTON') b.classList.toggle('active', b.dataset.direction === direction);
+      });
+      // Swap the headings on each view so the user knows what they're looking at.
+      const peopleH1 = document.querySelector('#peopleView h1');
+      if (peopleH1) {
+        peopleH1.innerHTML = direction === 'iOwe'
+          ? 'People <em>I owe</em>'
+          : 'People who <em>owe</em> you';
+      }
+      const peopleSub = document.querySelector('#peopleView .subtitle');
+      if (peopleSub) {
+        peopleSub.textContent = direction === 'iOwe'
+          ? 'Money I have to pay back. Tap to log a charge they gave me or a repayment I made.'
+          : 'Sorted by oldest unpaid. Tap any name to see the full ledger and log a charge or repayment.';
+      }
+      const statsH1 = document.querySelector('#statsView h1');
+      if (statsH1) {
+        statsH1.innerHTML = direction === 'iOwe'
+          ? 'What I owe by <em>currency</em>'
+          : 'Outstanding by <em>currency</em>';
+      }
+    }
+    applyDirectionUI();
+
+    document.querySelectorAll('.dir-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const next = btn.dataset.direction;
+        if (next === direction) return;
+        direction = next;
+        try { localStorage.setItem('diary.direction', direction); } catch {}
+        applyDirectionUI();
+        // Fresh data for the new side. Wipe the cache so chips/lists
+        // don't show stale counts from the previous direction.
+        dashboardCache.data = null;
+        peopleList.innerHTML = '<div class="empty-state">Loading…</div>';
+        activityList.innerHTML = '';
+        document.getElementById('currencyGrid').innerHTML = '<div class="currency-card-empty">Loading…</div>';
+        loadDashboard();
+      });
+    });
 
     if (navigator.onLine) loadDashboard();
 
@@ -1983,15 +2108,93 @@
     });
 
     // ============================================================
-    // RENDERING — activity feed
+    // RENDERING — activity feed with filters
     // ============================================================
+    // Filter state lives in memory so switching between chips/search
+    // doesn't re-fetch from the server — we just re-filter the cached
+    // recent entries.
+    const activityFilters = { type: 'all', time: 'all', personId: '', search: '' };
+    let _lastActivityEntries = [];
+
     function renderActivity(entries) {
-      if (!entries.length) {
-        activityList.innerHTML = '<div class="empty-state"><em>No activity yet.</em><br>Add your first entry from the + button.</div>';
+      _lastActivityEntries = entries || [];
+      refreshActivityPersonChips();
+      applyActivityFilters();
+    }
+
+    function refreshActivityPersonChips() {
+      // Build one chip per person who appears in the recent feed, plus
+      // an Everyone chip. Kept narrow on purpose — the row scrolls
+      // horizontally, so a few dozen people don't break layout.
+      const seen = new Map();
+      for (const e of _lastActivityEntries) {
+        if (!seen.has(e.personId)) seen.set(e.personId, e.personName);
+      }
+      const chips = ['<button class="chip ' + (activityFilters.personId === '' ? 'active' : '') + '" data-aperson="" type="button">Everyone</button>'];
+      for (const [pid, name] of seen) {
+        chips.push('<button class="chip ' + (activityFilters.personId === pid ? 'active' : '') + '" data-aperson="' + escapeHtml(pid) + '" type="button">' + escapeHtml(name) + '</button>');
+      }
+      document.getElementById('activityPersonChips').innerHTML = chips.join('');
+    }
+
+    function applyActivityFilters() {
+      const f = activityFilters;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const day = 86400000;
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const filtered = _lastActivityEntries.filter((e) => {
+        if (f.type !== 'all') {
+          if (f.type === 'overdue') {
+            if (!e.dueDate || e.type !== 'charge') return false;
+            const due = new Date(e.dueDate + 'T00:00:00');
+            if (due >= today) return false;
+          } else if (e.type !== f.type) return false;
+        }
+        if (f.personId && e.personId !== f.personId) return false;
+        if (f.time !== 'all') {
+          if (!e.date) return false;
+          const d = new Date(e.date + 'T00:00:00');
+          if (f.time === '7d'  && d < new Date(today - 7 * day))  return false;
+          if (f.time === '30d' && d < new Date(today - 30 * day)) return false;
+          if (f.time === 'month' && d < monthStart) return false;
+        }
+        if (f.search) {
+          const q = f.search.toLowerCase();
+          const hay = ((e.personName || '') + ' ' + (e.description || '') + ' ' + (e.category || '') + ' ' + String(e.amount || '')).toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+      const title = document.getElementById('activitySectionTitle');
+      if (title) title.textContent = filtered.length + ' ' + (filtered.length === 1 ? 'entry' : 'entries');
+      if (!filtered.length) {
+        activityList.innerHTML = '<div class="empty-state"><em>No matches.</em><br>Try a different filter or search term.</div>';
         return;
       }
-      activityList.innerHTML = entries.map(activityRowHtml).join('');
+      activityList.innerHTML = filtered.map(activityRowHtml).join('');
     }
+
+    document.querySelectorAll('[data-afilter]').forEach((c) => c.addEventListener('click', () => {
+      activityFilters.type = c.dataset.afilter;
+      document.querySelectorAll('[data-afilter]').forEach((x) => x.classList.toggle('active', x === c));
+      applyActivityFilters();
+    }));
+    document.querySelectorAll('[data-atime]').forEach((c) => c.addEventListener('click', () => {
+      activityFilters.time = c.dataset.atime;
+      document.querySelectorAll('[data-atime]').forEach((x) => x.classList.toggle('active', x === c));
+      applyActivityFilters();
+    }));
+    document.getElementById('activityPersonChips').addEventListener('click', (ev) => {
+      const c = ev.target.closest('[data-aperson]');
+      if (!c) return;
+      activityFilters.personId = c.dataset.aperson;
+      document.querySelectorAll('[data-aperson]').forEach((x) => x.classList.toggle('active', x === c));
+      applyActivityFilters();
+    });
+    document.getElementById('activitySearch').addEventListener('input', (ev) => {
+      activityFilters.search = ev.target.value.trim();
+      applyActivityFilters();
+    });
 
     function activityRowHtml(e) {
       const isCharge = e.type === 'charge';
@@ -2017,34 +2220,11 @@
     }
 
     // ============================================================
-    // RENDERING — stats
+    // RENDERING — stats (currency cards only)
     // ============================================================
     function renderStats(s) {
-      const hero = document.getElementById('heroTotal');
-      const sub = document.getElementById('heroSub');
       const byCur = s.outstandingByCurrency || {};
-      const curs = Object.keys(byCur).sort();
-      if (curs.length === 0) {
-        hero.textContent = formatMoney(0, 'PKR');
-      } else if (curs.length === 1) {
-        hero.textContent = formatMoney(byCur[curs[0]], curs[0]);
-      } else {
-        // Multi-currency: pick the currency with the largest total as
-        // the headline; render the rest as a small stacked list below
-        // so the hero's visual weight stays the same as single-currency.
-        const primary = curs.slice().sort((a, b) => byCur[b] - byCur[a])[0];
-        const rest = curs.filter((c) => c !== primary);
-        hero.innerHTML = escapeHtml(formatMoney(byCur[primary], primary))
-          + '<div class="stat-hero-extras">'
-          + rest.map((c) => '<span>+ ' + escapeHtml(formatMoney(byCur[c], c)) + '</span>').join('')
-          + '</div>';
-      }
-      sub.textContent = 'across ' + (s.peopleWithBalance || 0) + ' ' + ((s.peopleWithBalance || 0) === 1 ? 'person' : 'people');
-      document.getElementById('statTotalPeople').textContent = String(s.totalPeople || 0);
-      document.getElementById('statWithBalance').textContent = String(s.peopleWithBalance || 0);
-
-      // Currency-breakdown cards — one per currency people owe in.
-      // Tappable to open a drawer with the people in that currency.
+      const curs = Object.keys(byCur).sort((a, b) => byCur[b] - byCur[a]);
       const grid = document.getElementById('currencyGrid');
       const people = (dashboardCache.data && dashboardCache.data.people) || [];
       const peopleByCurrency = {};
@@ -2064,21 +2244,6 @@
           + '</button>'
         ).join('');
       }
-
-      const aging = s.aging || {};
-      const buckets = [
-        { key: 'fresh',    label: '0 – 7 days' },
-        { key: 'week',     label: '8 – 30 days' },
-        { key: 'month',    label: '31 – 60 days' },
-        { key: 'twoMonth', label: '61 – 90 days' },
-        { key: 'old',      label: '90+ days' },
-      ];
-      document.getElementById('agingList').innerHTML = buckets.map((b) =>
-        '<div class="aging-row">'
-        + '<div class="aging-key"><span class="aging-key-dot ' + b.key + '"></span>' + escapeHtml(b.label) + '</div>'
-        + '<div class="aging-val">' + (aging[b.key] || 0) + '</div>'
-        + '</div>'
-      ).join('');
     }
 
     // ============================================================
