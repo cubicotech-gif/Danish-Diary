@@ -265,6 +265,129 @@
     .stat-card-value.warn { color: var(--warn); }
     .stat-card-value.success { color: var(--success); }
 
+    /* Filter chips — used on people list and elsewhere */
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px 6px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .chip-row::-webkit-scrollbar { display: none; }
+    .chip {
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--ink-soft);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .chip:hover { border-color: var(--border-strong); }
+    .chip.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .chip-count {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 0 6px;
+      min-width: 18px;
+      height: 18px;
+      line-height: 18px;
+      text-align: center;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .chip.active .chip-count {
+      background: rgba(255, 255, 255, 0.22);
+      color: white;
+    }
+
+    /* Currency cards — stats view, tappable */
+    .currency-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .currency-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      transition: transform 0.1s ease, border-color 0.12s, box-shadow 0.12s;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .currency-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+    }
+    .currency-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
+    .currency-card:active { transform: scale(0.985); }
+    .currency-card-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted-soft);
+      margin-bottom: 8px;
+    }
+    .currency-card-amount {
+      font-family: 'Fraunces', serif;
+      font-size: 22px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      margin-bottom: 6px;
+      word-break: break-word;
+    }
+    .currency-card-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .currency-card-empty {
+      grid-column: 1 / -1;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+    }
+
+    .section-h {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 4px 0 10px;
+    }
+
     /* Aging breakdown */
     .aging-card {
       background: var(--surface);
@@ -1152,9 +1275,15 @@
         <p class="subtitle">Sorted by oldest unpaid. Tap any name to see the full ledger and log a charge or repayment.</p>
       </div>
 
+      <div class="chip-row" role="tablist" aria-label="Filter people">
+        <button class="chip active" data-pfilter="active" type="button">Active <span class="chip-count" id="pcount-active">0</span></button>
+        <button class="chip" data-pfilter="settled" type="button">Settled <span class="chip-count" id="pcount-settled">0</span></button>
+        <button class="chip" data-pfilter="archived" type="button">Archived <span class="chip-count" id="pcount-archived">0</span></button>
+      </div>
+
       <div class="people-section">
         <div class="section-header">
-          <span class="section-title">Active accounts</span>
+          <span class="section-title" id="peopleSectionTitle">Active accounts</span>
           <button class="refresh-btn" id="peopleRefreshBtn" type="button" aria-label="Refresh">
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
               <path d="M12.5 2v3.5H9M1.5 12V8.5H5M11.5 5A4.5 4.5 0 0 0 3.2 4M2.5 9A4.5 4.5 0 0 0 10.8 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1188,15 +1317,6 @@
         </div>
       </div>
 
-      <div class="people-section" id="archivedSection" style="display:none;">
-        <div class="section-header">
-          <span class="section-title">Archived</span>
-          <button class="refresh-btn" id="toggleArchivedBtn" type="button">
-            <span id="toggleArchivedLabel">Show</span>
-          </button>
-        </div>
-        <div id="archivedList" style="display:none;"></div>
-      </div>
     </section>
 
     <!-- ============================================================
@@ -1239,13 +1359,18 @@
       <div class="title-block">
         <div class="eyebrow">Stats</div>
         <h1>Total <em>outstanding</em></h1>
-        <p class="subtitle">What you're owed in aggregate, broken down by how long it's been unpaid.</p>
+        <p class="subtitle">What you're owed, grouped by currency. Tap a card to see who owes you in that currency.</p>
       </div>
 
       <div class="stat-hero">
         <div class="stat-hero-label">Total people owe you</div>
         <div class="stat-hero-value" id="heroTotal"><span class="skeleton">₨000,000</span></div>
         <div class="stat-hero-sub" id="heroSub">across — people</div>
+      </div>
+
+      <div class="section-h">By currency · tap to see who</div>
+      <div class="currency-grid" id="currencyGrid">
+        <div class="currency-card-empty">Loading…</div>
       </div>
 
       <div class="stat-grid">
@@ -1329,6 +1454,24 @@
        SHARED BACKDROP — drawers + modals dim through this
        ============================================================ -->
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <!-- ============================================================
+       CURRENCY BREAKDOWN DRAWER — opens when a currency card is tapped
+       ============================================================ -->
+  <div class="drawer" id="currencyDrawer" role="dialog" aria-modal="true" aria-labelledby="currencyDrawerTitle">
+    <div class="drawer-handle"></div>
+    <div class="drawer-head">
+      <div class="drawer-eyebrow">Outstanding in</div>
+      <div class="drawer-title" id="currencyDrawerTitle">—</div>
+      <div class="person-meta-row" id="currencyDrawerMeta"></div>
+    </div>
+    <div class="drawer-body">
+      <div id="currencyBreakdownList"></div>
+    </div>
+    <div class="drawer-actions">
+      <button class="btn btn-ghost" id="currencyDrawerClose" type="button">Close</button>
+    </div>
+  </div>
 
   <!-- ============================================================
        PERSON DETAIL DRAWER
@@ -1658,13 +1801,11 @@
     const dashboardCache = { data: null };
 
     const peopleList     = document.getElementById('peopleList');
-    const archivedList   = document.getElementById('archivedList');
-    const archivedSection= document.getElementById('archivedSection');
-    const toggleArchivedBtn = document.getElementById('toggleArchivedBtn');
-    const toggleArchivedLabel = document.getElementById('toggleArchivedLabel');
     const activityList   = document.getElementById('activityList');
     const peopleRefreshBtn   = document.getElementById('peopleRefreshBtn');
     const activityRefreshBtn = document.getElementById('activityRefreshBtn');
+    const peopleSectionTitle = document.getElementById('peopleSectionTitle');
+    let peopleFilter = 'active';  // 'active' | 'settled' | 'archived'
 
     peopleRefreshBtn.addEventListener('click', () => loadDashboard());
     activityRefreshBtn.addEventListener('click', () => loadDashboard());
@@ -1712,25 +1853,103 @@
     if (navigator.onLine) loadDashboard();
 
     // ============================================================
-    // RENDERING — people list
+    // RENDERING — people list with filter chips
+    //
+    // Filters:
+    //   active   = unarchived + balance > 0 (someone actually owes me)
+    //   settled  = unarchived + balance == 0 (paid up or never charged)
+    //   archived = archived flag set
+    // Settled accounts drop out of Active automatically so the main
+    // list stays focused on what needs chasing.
     // ============================================================
+    const peopleFilterEmpty = {
+      active:   { title: 'All clear', msg: 'No active receivables. Settled people are in the next chip.' },
+      settled:  { title: 'Nothing settled yet', msg: 'Once a balance hits zero it shows here.' },
+      archived: { title: 'No archived people', msg: 'Archive someone from their detail screen to move them here.' }
+    };
+
+    function classifyPerson(p) {
+      if (p.archived) return 'archived';
+      const bal = Number(p.balance) || 0;
+      return bal > 0 ? 'active' : 'settled';
+    }
+
     function renderPeople(people) {
-      const active = people.filter((p) => !p.archived);
-      const archived = people.filter((p) => p.archived);
+      const buckets = { active: [], settled: [], archived: [] };
+      for (const p of people) buckets[classifyPerson(p)].push(p);
+      document.getElementById('pcount-active').textContent = buckets.active.length;
+      document.getElementById('pcount-settled').textContent = buckets.settled.length;
+      document.getElementById('pcount-archived').textContent = buckets.archived.length;
 
-      if (active.length === 0) {
-        peopleList.innerHTML = '<div class="empty-state"><em>Nothing on the books.</em><br>Tap the + button to add your first entry.</div>';
+      const list = buckets[peopleFilter] || [];
+      peopleSectionTitle.textContent =
+        peopleFilter === 'active'   ? 'Active accounts' :
+        peopleFilter === 'settled'  ? 'Settled accounts' :
+                                      'Archived';
+      if (list.length === 0) {
+        const e = peopleFilterEmpty[peopleFilter];
+        peopleList.innerHTML = '<div class="empty-state"><em>' + e.title + '.</em><br>' + e.msg + '</div>';
       } else {
-        peopleList.innerHTML = active.map(personRowHtml).join('');
-      }
-
-      if (archived.length > 0) {
-        archivedSection.style.display = '';
-        archivedList.innerHTML = archived.map(personRowHtml).join('');
-      } else {
-        archivedSection.style.display = 'none';
+        peopleList.innerHTML = list.map(personRowHtml).join('');
       }
     }
+
+    // Chip clicks switch the filter without re-fetching.
+    document.querySelectorAll('[data-pfilter]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        peopleFilter = chip.dataset.pfilter;
+        document.querySelectorAll('[data-pfilter]').forEach((c) =>
+          c.classList.toggle('active', c.dataset.pfilter === peopleFilter));
+        if (dashboardCache.data) renderPeople(dashboardCache.data.people || []);
+      });
+    });
+
+    // ============================================================
+    // CURRENCY BREAKDOWN DRAWER
+    // ============================================================
+    const currencyDrawer = document.getElementById('currencyDrawer');
+    const currencyBreakdownList = document.getElementById('currencyBreakdownList');
+    document.getElementById('currencyGrid').addEventListener('click', (ev) => {
+      const card = ev.target.closest('[data-currency]');
+      if (!card) return;
+      openCurrencyDrawer(card.dataset.currency);
+    });
+    document.getElementById('currencyDrawerClose').addEventListener('click', closeCurrencyDrawer);
+
+    function openCurrencyDrawer(currency) {
+      const people = ((dashboardCache.data && dashboardCache.data.people) || [])
+        .filter((p) => !p.archived && (Number(p.balance) || 0) > 0 && p.currency === currency)
+        .sort((a, b) => (Number(b.balance) || 0) - (Number(a.balance) || 0));
+      const total = people.reduce((s, p) => s + (Number(p.balance) || 0), 0);
+      document.getElementById('currencyDrawerTitle').textContent = currency + ' · ' + formatMoney(total, currency);
+      document.getElementById('currencyDrawerMeta').innerHTML =
+        '<span class="person-chip">' + people.length + ' ' + (people.length === 1 ? 'person' : 'people') + '</span>';
+      if (people.length === 0) {
+        currencyBreakdownList.innerHTML = '<div class="empty-state">Nobody owes you in this currency right now.</div>';
+      } else {
+        currencyBreakdownList.innerHTML = people.map(personRowHtml).join('');
+      }
+      backdrop.classList.add('visible');
+      currencyDrawer.classList.add('visible');
+    }
+
+    function closeCurrencyDrawer() {
+      currencyDrawer.classList.remove('visible');
+      // Don't drop the backdrop if another drawer/modal is still open behind.
+      const stillOpen = personDrawer.classList.contains('visible')
+        || addEntryModal.classList.contains('visible')
+        || personModal.classList.contains('visible');
+      if (!stillOpen) backdrop.classList.remove('visible');
+    }
+
+    // Tap a person row inside the currency drawer → open their detail
+    currencyBreakdownList.addEventListener('click', (ev) => {
+      const row = ev.target.closest('.person-row');
+      if (row) {
+        closeCurrencyDrawer();
+        openPersonDrawer(row.dataset.personId);
+      }
+    });
 
     function personRowHtml(p) {
       const balance = Number(p.balance) || 0;
@@ -1761,15 +1980,6 @@
     peopleList.addEventListener('click', (ev) => {
       const row = ev.target.closest('.person-row');
       if (row) openPersonDrawer(row.dataset.personId);
-    });
-    archivedList.addEventListener('click', (ev) => {
-      const row = ev.target.closest('.person-row');
-      if (row) openPersonDrawer(row.dataset.personId);
-    });
-    toggleArchivedBtn.addEventListener('click', () => {
-      const showing = archivedList.style.display !== 'none';
-      archivedList.style.display = showing ? 'none' : '';
-      toggleArchivedLabel.textContent = showing ? 'Show' : 'Hide';
     });
 
     // ============================================================
@@ -1832,6 +2042,28 @@
       sub.textContent = 'across ' + (s.peopleWithBalance || 0) + ' ' + ((s.peopleWithBalance || 0) === 1 ? 'person' : 'people');
       document.getElementById('statTotalPeople').textContent = String(s.totalPeople || 0);
       document.getElementById('statWithBalance').textContent = String(s.peopleWithBalance || 0);
+
+      // Currency-breakdown cards — one per currency people owe in.
+      // Tappable to open a drawer with the people in that currency.
+      const grid = document.getElementById('currencyGrid');
+      const people = (dashboardCache.data && dashboardCache.data.people) || [];
+      const peopleByCurrency = {};
+      for (const c of curs) peopleByCurrency[c] = 0;
+      for (const p of people) {
+        if (p.archived) continue;
+        if ((Number(p.balance) || 0) > 0) peopleByCurrency[p.currency] = (peopleByCurrency[p.currency] || 0) + 1;
+      }
+      if (curs.length === 0) {
+        grid.innerHTML = '<div class="currency-card-empty">No outstanding balances right now.</div>';
+      } else {
+        grid.innerHTML = curs.map((c) => ''
+          + '<button class="currency-card" type="button" data-currency="' + escapeHtml(c) + '">'
+          +   '<div class="currency-card-code">' + escapeHtml(c) + '</div>'
+          +   '<div class="currency-card-amount">' + escapeHtml(formatMoney(byCur[c], c)) + '</div>'
+          +   '<div class="currency-card-meta">' + (peopleByCurrency[c] || 0) + ' ' + ((peopleByCurrency[c] || 0) === 1 ? 'person' : 'people') + '</div>'
+          + '</button>'
+        ).join('');
+      }
 
       const aging = s.aging || {};
       const buckets = [
