@@ -542,29 +542,25 @@
       background: var(--accent);
       border-radius: 0 0 2px 2px;
     }
-    .tab.spacer {
-      flex: 0 0 70px;
-      pointer-events: none;
-    }
     .fab {
       position: fixed;
-      bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px));
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60px; height: 60px;
+      right: max(20px, calc(env(safe-area-inset-right) + 12px));
+      bottom: calc(56px + max(20px, env(safe-area-inset-bottom)) + 12px);
+      width: 56px; height: 56px;
       border-radius: 50%;
       background: var(--accent);
       color: white;
-      border: 3px solid var(--surface);
+      border: none;
       display: grid;
       place-items: center;
       cursor: pointer;
       z-index: 50;
       box-shadow: 0 6px 18px rgba(15, 122, 92, 0.35);
       -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease, background 0.15s ease;
     }
     .fab:hover { background: var(--accent-deep); }
-    .fab:active { transform: translateX(-50%) scale(0.95); }
+    .fab:active { transform: scale(0.94); }
 
     /* ============================================================
        DRAWER (bottom sheet) — person detail + add entry
@@ -1309,7 +1305,6 @@
       </svg>
       <span>People</span>
     </button>
-    <button class="tab spacer" tabindex="-1" aria-hidden="true"></button>
     <button class="tab" id="tabActivity" type="button" role="tab" aria-selected="false" aria-controls="activityView" data-tab="activity">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M3 12h4l2-6 4 12 2-6h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
