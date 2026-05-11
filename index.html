@@ -278,41 +278,123 @@
     .greeting { font-size: 22px; font-weight: 700; letter-spacing: -.015em; }
     .greeting-sub { color: var(--muted); font-size: 14px; margin-top: 2px; }
 
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 10px;
-      margin: 16px 0;
+    .hero {
+      margin: 14px 0;
+      border-radius: var(--radius-l);
+      padding: 20px;
+      background:
+        radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 40%, transparent), transparent 60%),
+        linear-gradient(135deg, var(--surface), var(--surface-2));
+      border: 1px solid var(--border-strong);
+      position: relative;
+      overflow: hidden;
     }
-    .stat-card {
+    .hero::after {
+      content: ''; position: absolute; right: -40px; bottom: -40px;
+      width: 180px; height: 180px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+      pointer-events: none;
+    }
+    .hero-label {
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--muted);
+    }
+    .hero-amount {
+      font-size: 36px; font-weight: 800; letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+      margin-top: 4px; color: var(--accent);
+      line-height: 1.1;
+    }
+    .hero-amount.muted { color: var(--muted); font-size: 28px; }
+    .hero-extras { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .hero-chip {
+      padding: 4px 10px; border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent);
+      font-size: 13px; font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+    .hero-foot {
+      display: flex; gap: 14px; margin-top: 12px;
+      font-size: 13px; color: var(--ink-soft);
+    }
+    .hero-foot b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .hero-foot .dot { color: var(--muted); }
+
+    .section-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin: 20px 0 10px;
+    }
+    .section-head h2 {
+      font-size: 13px; font-weight: 700; color: var(--ink-soft);
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    .section-head a, .section-head button {
+      font-size: 13px; font-weight: 600; color: var(--accent);
+    }
+
+    /* Aging horizontal bar */
+    .aging-bar {
+      display: flex; height: 10px; border-radius: 999px; overflow: hidden;
+      background: var(--surface-2); margin-bottom: 10px;
+    }
+    .aging-bar .seg { height: 100%; transition: width .4s ease; }
+    .aging-bar .seg.fresh    { background: var(--success); }
+    .aging-bar .seg.week     { background: var(--warn); }
+    .aging-bar .seg.month    { background: var(--accent); }
+    .aging-bar .seg.twoMonth { background: #E59A4C; }
+    .aging-bar .seg.old      { background: var(--danger); }
+    .aging-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-soft); }
+    .aging-legend .item { display: flex; align-items: center; gap: 6px; }
+    .aging-legend .swatch { width: 8px; height: 8px; border-radius: 2px; }
+    .aging-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+    /* Colored avatars (8 hues, picked by name hash) */
+    .avatar.c0 { background: #FF8A65; color: #fff; }
+    .avatar.c1 { background: #4FC3F7; color: #fff; }
+    .avatar.c2 { background: #81C784; color: #fff; }
+    .avatar.c3 { background: #FFB74D; color: #fff; }
+    .avatar.c4 { background: #BA68C8; color: #fff; }
+    .avatar.c5 { background: #4DD0E1; color: #fff; }
+    .avatar.c6 { background: #F06292; color: #fff; }
+    .avatar.c7 { background: #9575CD; color: #fff; }
+    html[data-theme="light"] .avatar { color: #fff; }
+
+    .person-row {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 14px;
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+      transition: transform .08s ease, background .12s;
     }
-    .stat-card.accent { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000)); color: #1a1a2e; border: 0; }
-    .stat-card.accent .stat-label { color: rgba(26,26,46,.7); }
-    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-    .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
-    .stat-foot { font-size: 12px; color: var(--muted); margin-top: 6px; }
-    .stat-card.accent .stat-foot { color: rgba(26,26,46,.7); }
-
-    .aging-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-    .aging-pill {
-      flex: 1; min-width: 70px;
-      padding: 8px 10px; border-radius: 12px;
-      background: var(--surface-2); border: 1px solid var(--border);
-      display: flex; flex-direction: column; gap: 2px;
+    .person-row:active { transform: scale(.99); }
+    .person-row:hover { background: var(--surface-2); }
+    .person-row .avatar {
+      width: 44px; height: 44px; border-radius: 14px;
+      font-weight: 700; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; letter-spacing: -.02em;
     }
-    .aging-pill .n { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .aging-pill .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-    .aging-pill.fresh    { border-color: color-mix(in srgb, var(--success) 40%, var(--border)); }
-    .aging-pill.fresh .n { color: var(--success); }
-    .aging-pill.week .n  { color: var(--warn); }
-    .aging-pill.month .n { color: var(--accent); }
-    .aging-pill.twoMonth .n { color: #E59A4C; }
-    .aging-pill.old      { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
-    .aging-pill.old .n   { color: var(--danger); }
+    .person-row .body { flex: 1; min-width: 0; }
+    .person-row .name {
+      font-weight: 600; font-size: 15.5px;
+      display: flex; align-items: center; gap: 6px; min-width: 0;
+    }
+    .person-row .name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .person-row .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .person-row .right { text-align: right; flex-shrink: 0; }
+    .person-row .owe-amount {
+      font-weight: 700; font-variant-numeric: tabular-nums; font-size: 16px;
+      letter-spacing: -.01em; color: var(--danger);
+    }
+    .person-row .owe-amount.settled { color: var(--muted); }
+    .person-row .owe-amount.advance { color: var(--success); }
+    .person-row .owe-sub { color: var(--muted); font-size: 11px; margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+    .person-row .owe-sub.hot { color: var(--danger); }
+    .person-row .owe-sub.warm { color: var(--warn); }
 
     /* ============================================================
        PEOPLE LIST + ACTIVITY LIST — shared row design
@@ -594,21 +676,32 @@
 
       <div id="overdueBanner"></div>
 
-      <h2 class="section-h">Outstanding by currency</h2>
-      <div id="summaryGrid" class="summary-grid"></div>
-
-      <div class="card">
-        <div class="card-title">Aging</div>
-        <div class="aging-row" id="agingRow">
-          <div class="aging-pill fresh"><span class="n" id="ag-fresh">0</span><span class="l">0–7d</span></div>
-          <div class="aging-pill week"><span class="n" id="ag-week">0</span><span class="l">8–30d</span></div>
-          <div class="aging-pill month"><span class="n" id="ag-month">0</span><span class="l">31–60d</span></div>
-          <div class="aging-pill twoMonth"><span class="n" id="ag-twoMonth">0</span><span class="l">61–90d</span></div>
-          <div class="aging-pill old"><span class="n" id="ag-old">0</span><span class="l">91d+</span></div>
-        </div>
+      <div id="heroCard" class="hero">
+        <div class="hero-label">You're owed</div>
+        <div class="hero-amount muted" id="heroAmount">—</div>
+        <div class="hero-extras" id="heroExtras"></div>
+        <div class="hero-foot" id="heroFoot"></div>
       </div>
 
-      <h2 class="section-h">Recent activity</h2>
+      <div class="section-head">
+        <h2>Who owes you</h2>
+        <button id="viewAllPeople">View all →</button>
+      </div>
+      <div class="list" id="dashPeopleList"></div>
+
+      <div class="section-head">
+        <h2>Aging</h2>
+        <span id="agingTotal" style="font-size: 12px; color: var(--muted);"></span>
+      </div>
+      <div class="card">
+        <div class="aging-bar" id="agingBar"></div>
+        <div class="aging-legend" id="agingLegend"></div>
+      </div>
+
+      <div class="section-head">
+        <h2>Recent activity</h2>
+        <button data-go="activity">All →</button>
+      </div>
       <div class="list" id="recentList"></div>
     </section>
 
@@ -887,6 +980,13 @@
       const parts = String(name || '').trim().split(/\s+/).slice(0, 2);
       return parts.map((p) => p[0]).join('').toUpperCase() || '?';
     };
+    const avatarHue = (s) => {
+      let h = 0; const str = String(s || '');
+      for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+      return Math.abs(h) % 8;
+    };
+    const ageBucket = (d) => d <= 7 ? 'fresh' : d <= 30 ? 'week' : d <= 60 ? 'month' : d <= 90 ? 'twoMonth' : 'old';
+    const ageLabel = (d) => d === 0 ? 'today' : d === 1 ? 'yesterday' : d + 'd since payment';
     const parseIsoLocal = (s) => { if (!s) return null; const p = s.split('-'); return p.length === 3 ? new Date(+p[0], +p[1]-1, +p[2]) : null; };
     const daysFromNow = (s) => { const d = parseIsoLocal(s); if (!d) return null; const t = new Date(); t.setHours(0,0,0,0); return Math.floor((d - t) / 86400000); };
 
@@ -1006,46 +1106,121 @@
       // Overdue banner
       const overBan = $('overdueBanner');
       if (d.summary.overduePeople > 0) {
-        overBan.innerHTML = '<div class="banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><b>' + d.summary.overduePeople + ' ' + (d.summary.overduePeople === 1 ? 'person has' : 'people have') + ' overdue charges.</b><div style="color: var(--ink-soft); margin-top: 2px;">Check the People tab.</div></div></div>';
+        overBan.innerHTML = '<div class="banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><b>' + d.summary.overduePeople + ' ' + (d.summary.overduePeople === 1 ? 'person has' : 'people have') + ' overdue charges.</b><div style="color: var(--ink-soft); margin-top: 2px;">Tap a name below to follow up.</div></div></div>';
       } else {
         overBan.innerHTML = '';
       }
 
-      // Summary cards — one per currency
-      const grid = $('summaryGrid');
-      const currencies = Object.keys(d.summary.outstandingByCurrency);
+      // Hero — total outstanding by currency
+      const currencies = Object.keys(d.summary.outstandingByCurrency).sort();
+      const heroAmt = $('heroAmount');
+      const heroExtras = $('heroExtras');
+      const heroFoot = $('heroFoot');
       if (currencies.length === 0) {
-        grid.innerHTML = '<div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value">—</div><div class="stat-foot">No active receivables</div></div>';
+        heroAmt.textContent = 'All clear';
+        heroAmt.classList.add('muted');
+        heroExtras.innerHTML = '';
+        heroFoot.innerHTML = '<span>Nobody owes you anything right now.</span>';
       } else {
-        grid.innerHTML = currencies.map((c, i) => {
-          const amount = d.summary.outstandingByCurrency[c];
-          const count = d.summary.peopleByCurrency[c] || 0;
-          return '<div class="stat-card' + (i === 0 ? ' accent' : '') + '">'
-            + '<div class="stat-label">' + c + ' Outstanding</div>'
-            + '<div class="stat-value">' + fmtMoneyShort(amount, c) + '</div>'
-            + '<div class="stat-foot">' + count + ' ' + (count === 1 ? 'person' : 'people') + '</div>'
-            + '</div>';
-        }).join('');
+        heroAmt.classList.remove('muted');
+        const primary = currencies[0];
+        heroAmt.textContent = fmtMoney(d.summary.outstandingByCurrency[primary], primary);
+        heroExtras.innerHTML = currencies.slice(1).map((c) =>
+          '<span class="hero-chip">' + fmtMoney(d.summary.outstandingByCurrency[c], c) + '</span>'
+        ).join('');
+        const totalPeople = d.summary.peopleWithBalance;
+        const overdue = d.summary.overduePeople;
+        heroFoot.innerHTML =
+          '<span><b>' + totalPeople + '</b> ' + (totalPeople === 1 ? 'person owes' : 'people owe') + ' you</span>'
+          + (overdue > 0 ? '<span class="dot">·</span><span style="color: var(--danger);"><b>' + overdue + '</b> overdue</span>' : '');
       }
 
-      // Aging
-      const ag = d.summary.aging;
-      $('ag-fresh').textContent = ag.fresh;
-      $('ag-week').textContent = ag.week;
-      $('ag-month').textContent = ag.month;
-      $('ag-twoMonth').textContent = ag.twoMonth;
-      $('ag-old').textContent = ag.old;
+      // Who owes you — top 5 on dashboard
+      const owers = (d.people || []).filter((p) => !p.archived && p.balance > 0);
+      const dashList = $('dashPeopleList');
+      const showList = owers.slice(0, 6);
+      if (showList.length === 0) {
+        dashList.innerHTML = '<div class="empty"><div class="title">No outstanding balances</div><div class="msg">Tap People to add or view everyone.</div></div>';
+      } else {
+        dashList.innerHTML = showList.map(renderPersonRow).join('');
+        attachPersonRowClicks(dashList);
+      }
+      $('viewAllPeople').onclick = () => { state.peopleFilter = 'owes'; document.querySelectorAll('[data-pfilter]').forEach((c) => c.classList.toggle('active', c.dataset.pfilter === 'owes')); go('people'); };
 
-      // Recent activity
+      // Aging — horizontal bar
+      const ag = d.summary.aging;
+      const total = ag.fresh + ag.week + ag.month + ag.twoMonth + ag.old;
+      $('agingTotal').textContent = total > 0 ? total + ' ' + (total === 1 ? 'person' : 'people') : '';
+      const bar = $('agingBar');
+      const leg = $('agingLegend');
+      if (total === 0) {
+        bar.innerHTML = '<div style="flex:1;"></div>';
+        leg.innerHTML = '<div class="item" style="color: var(--muted);">No outstanding balances</div>';
+      } else {
+        const buckets = [
+          { k: 'fresh', n: ag.fresh, l: '0–7d', col: 'var(--success)' },
+          { k: 'week', n: ag.week, l: '8–30d', col: 'var(--warn)' },
+          { k: 'month', n: ag.month, l: '31–60d', col: 'var(--accent)' },
+          { k: 'twoMonth', n: ag.twoMonth, l: '61–90d', col: '#E59A4C' },
+          { k: 'old', n: ag.old, l: '91d+', col: 'var(--danger)' }
+        ];
+        bar.innerHTML = buckets.filter((b) => b.n > 0)
+          .map((b) => '<div class="seg ' + b.k + '" style="width:' + (b.n / total * 100) + '%;" title="' + b.l + ': ' + b.n + '"></div>').join('');
+        leg.innerHTML = buckets.map((b) =>
+          '<div class="item"><span class="swatch" style="background:' + b.col + ';"></span>' + b.l + ' <b>' + b.n + '</b></div>'
+        ).join('');
+      }
+
+      // Recent activity (compact)
       const list = $('recentList');
-      const items = (d.recent || []).slice(0, 12);
+      const items = (d.recent || []).slice(0, 8);
       if (items.length === 0) {
-        list.innerHTML = '<div class="empty"><div class="title">No activity yet</div><div class="msg">Add a person, then a charge.</div></div>';
+        list.innerHTML = '<div class="empty"><div class="title">No activity yet</div><div class="msg">Tap a person to add a charge.</div></div>';
       } else {
         list.innerHTML = items.map((e) => renderEntryRow(e)).join('');
         list.querySelectorAll('[data-entry-row]').forEach((el) => el.addEventListener('click', () => openPersonByName(el.dataset.personId)));
       }
     }
+
+    // Shared people-row template — used by dashboard and People view.
+    function renderPersonRow(p) {
+      const c = avatarHue(p.personId || p.name);
+      const archivedBadge = p.archived ? '<span class="badge archived">archived</span>' : '';
+      const overdueBadge = p.overdueCount > 0 ? '<span class="badge overdue">' + p.overdueCount + ' overdue</span>' : '';
+      const isOwes = p.balance > 0;
+      const isAdv  = p.balance < 0;
+      const amountCls = isOwes ? '' : (isAdv ? 'advance' : 'settled');
+      const subCls = p.daysSincePayment > 90 ? 'hot' : p.daysSincePayment > 30 ? 'warm' : '';
+      const subText = p.entryCount === 0
+        ? 'no entries · ' + p.currency
+        : (isOwes ? ageLabel(p.daysSincePayment) + ' · ' + p.currency
+                  : (isAdv ? 'advance · ' + p.currency : 'settled · ' + p.currency));
+      const amount = isOwes
+        ? fmtMoneyShort(p.balance, p.currency)
+        : (isAdv ? fmtMoneyShort(p.balance, p.currency) : '—');
+      return ''
+        + '<div class="person-row" data-pid="' + escapeHtml(p.personId) + '">'
+        +   '<div class="avatar c' + c + '">' + initials(p.name) + '</div>'
+        +   '<div class="body">'
+        +     '<div class="name"><span class="name-text">' + escapeHtml(p.name) + '</span> ' + archivedBadge + ' ' + overdueBadge + '</div>'
+        +     '<div class="meta">' + subText + '</div>'
+        +   '</div>'
+        +   '<div class="right">'
+        +     '<div class="owe-amount ' + amountCls + '">' + amount + '</div>'
+        +     '<div class="owe-sub ' + subCls + '">' + p.entryCount + ' entries</div>'
+        +   '</div>'
+        + '</div>';
+    }
+
+    function attachPersonRowClicks(container) {
+      container.querySelectorAll('[data-pid]').forEach((el) => el.addEventListener('click', () => {
+        const p = (state.dashboard && state.dashboard.people || []).find((x) => x.personId === el.dataset.pid);
+        if (p) openPersonDetail(p);
+      }));
+    }
+
+    // Wire dashboard "All →" buttons
+    document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => go(b.dataset.go)));
 
     function renderEntryRow(e) {
       const arrow = e.type === 'charge'
@@ -1098,30 +1273,8 @@
         list.innerHTML = '<div class="empty"><div class="title">No people</div><div class="msg">Tap + to add one.</div></div>';
         return;
       }
-
-      list.innerHTML = people.map((p) => {
-        const bcls = p.balance > 0 ? 'pos' : p.balance < 0 ? 'neg' : 'zero';
-        const overdueBadge = p.overdueCount > 0 ? '<span class="badge overdue">' + p.overdueCount + ' overdue</span>' : '';
-        const archivedBadge = p.archived ? '<span class="badge archived">archived</span>' : '';
-        const lastBit = p.daysSincePayment > 0 ? p.daysSincePayment + 'd since payment' : (p.entryCount === 0 ? 'no entries' : 'today');
-        return ''
-          + '<div class="row" data-pid="' + escapeHtml(p.personId) + '">'
-          +   '<div class="avatar' + (p.archived ? ' archived' : '') + '">' + initials(p.name) + '</div>'
-          +   '<div class="body">'
-          +     '<div class="name">' + escapeHtml(p.name) + ' ' + archivedBadge + ' ' + overdueBadge + '</div>'
-          +     '<div class="sub"><span class="badge cur">' + p.currency + '</span> ' + lastBit + '</div>'
-          +   '</div>'
-          +   '<div class="right">'
-          +     '<div class="balance ' + bcls + '">' + fmtMoneyShort(p.balance, p.currency) + '</div>'
-          +     '<div class="meta-right">' + p.entryCount + ' entries</div>'
-          +   '</div>'
-          + '</div>';
-      }).join('');
-
-      list.querySelectorAll('[data-pid]').forEach((el) => el.addEventListener('click', () => {
-        const p = people.find((x) => x.personId === el.dataset.pid);
-        if (p) openPersonDetail(p);
-      }));
+      list.innerHTML = people.map(renderPersonRow).join('');
+      attachPersonRowClicks(list);
     }
     $('peopleSearch').addEventListener('input', renderPeople);
     document.querySelectorAll('[data-pfilter]').forEach((c) => c.addEventListener('click', () => {
