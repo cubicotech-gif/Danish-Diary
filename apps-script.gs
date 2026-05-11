@@ -25,16 +25,23 @@
 // ============================================
 
 const SECRET_TOKEN  = 'diary-7Nq2Pk5Hm8Rt3vXz9wL';
-const PEOPLE_SHEET  = 'People';
-const LEDGER_SHEET  = 'Ledger';
 const CACHE_TTL_S   = 30;
-const CACHE_KEY     = 'diary_dashboard_v1';
+
+// Two parallel sets of sheets — one for receivables ('owesMe', the
+// people who owe me) and one for payables ('iOwe', the people I owe
+// money to). Same schema, different rows.
+const SHEETS = {
+  owesMe: { people: 'People',     ledger: 'Ledger',     cacheKey: 'diary_dashboard_owesMe' },
+  iOwe:   { people: 'PeopleIOwe', ledger: 'LedgerIOwe', cacheKey: 'diary_dashboard_iOwe'   }
+};
+function dir_(d) { return SHEETS[d] ? d : 'owesMe'; }
+function cfg_(d) { return SHEETS[dir_(d)]; }
 
 const DEFAULT_CURRENCY = 'PKR';
 const ALLOWED_CURRENCIES = ['PKR','USD','EUR','GBP','AED','SAR','INR','CAD','AUD','JPY','CNY','TRY','BDT','LKR'];
 const ALLOWED_CATEGORIES = ['loan','advance','business','personal','refund','goods','services','other'];
 
-// Column maps (1-based)
+// Column maps (1-based) — same schema for both directions.
 const P = { id: 1, name: 2, phone: 3, currency: 4, notes: 5, archived: 6, createdAt: 7 };
 const L = { id: 1, personId: 2, date: 3, type: 4, amount: 5, description: 6, category: 7, dueDate: 8, createdAt: 9 };
 
@@ -53,14 +60,16 @@ function doGet(e) {
     return jsonResponse({ ok: false, error: 'Unauthorized' });
   }
 
+  const d = dir_((e && e.parameter && e.parameter.direction) || 'owesMe');
+
   try {
     if (action === 'dashboard') {
-      return jsonResponse(Object.assign({ ok: true }, getDashboardCached_()));
+      return jsonResponse(Object.assign({ ok: true }, getDashboardCached_(d)));
     }
     if (action === 'person') {
       const personId = String((e && e.parameter && e.parameter.personId) || '');
       if (!personId) return jsonResponse({ ok: false, error: 'personId required' });
-      return jsonResponse({ ok: true, person: getPersonDetail_(personId) });
+      return jsonResponse({ ok: true, person: getPersonDetail_(d, personId) });
     }
     return jsonResponse({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
@@ -79,12 +88,13 @@ function doPost(e) {
 
     const action = data.action;
     if (!action) return jsonResponse({ ok: false, error: 'Missing action' });
+    const d = dir_(data.direction || 'owesMe');
 
-    if (action === 'addPerson')      return handleAddPerson_(data);
-    if (action === 'updatePerson')   return handleUpdatePerson_(data);
-    if (action === 'archivePerson')  return handleArchivePerson_(data);
-    if (action === 'addEntry')       return handleAddEntry_(data);
-    if (action === 'deleteEntry')    return handleDeleteEntry_(data);
+    if (action === 'addPerson')      return handleAddPerson_(d, data);
+    if (action === 'updatePerson')   return handleUpdatePerson_(d, data);
+    if (action === 'archivePerson')  return handleArchivePerson_(d, data);
+    if (action === 'addEntry')       return handleAddEntry_(d, data);
+    if (action === 'deleteEntry')    return handleDeleteEntry_(d, data);
 
     return jsonResponse({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
@@ -100,12 +110,13 @@ function authOk_(token) {
 // SHEETS — ensure they exist with headers
 // ============================================
 
-function getPeopleSheet_() {
+function getPeopleSheet_(d) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('Script is not bound to a spreadsheet. Open the target Google Sheet → Extensions → Apps Script and paste this code there.');
-  let sheet = ss.getSheetByName(PEOPLE_SHEET);
+  const name = cfg_(d).people;
+  let sheet = ss.getSheetByName(name);
   if (!sheet) {
-    sheet = ss.insertSheet(PEOPLE_SHEET);
+    sheet = ss.insertSheet(name);
     sheet.getRange(1, 1, 1, 7).setValues([
       ['personId', 'name', 'phone', 'currency', 'notes', 'archived', 'createdAt']
     ]);
@@ -116,12 +127,13 @@ function getPeopleSheet_() {
   return sheet;
 }
 
-function getLedgerSheet_() {
+function getLedgerSheet_(d) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('Script is not bound to a spreadsheet. Open the target Google Sheet → Extensions → Apps Script and paste this code there.');
-  let sheet = ss.getSheetByName(LEDGER_SHEET);
+  const name = cfg_(d).ledger;
+  let sheet = ss.getSheetByName(name);
   if (!sheet) {
-    sheet = ss.insertSheet(LEDGER_SHEET);
+    sheet = ss.insertSheet(name);
     sheet.getRange(1, 1, 1, 9).setValues([
       ['entryId', 'personId', 'date', 'type', 'amount', 'description', 'category', 'dueDate', 'createdAt']
     ]);
@@ -135,8 +147,8 @@ function getLedgerSheet_() {
 // READING — full table reads
 // ============================================
 
-function readPeople_() {
-  const sheet = getPeopleSheet_();
+function readPeople_(d) {
+  const sheet = getPeopleSheet_(d);
   const last = sheet.getLastRow();
   if (last < 2) return [];
   const values = sheet.getRange(2, 1, last - 1, 7).getValues();
@@ -154,8 +166,8 @@ function readPeople_() {
     .filter((p) => p.personId);
 }
 
-function readLedger_() {
-  const sheet = getLedgerSheet_();
+function readLedger_(d) {
+  const sheet = getLedgerSheet_(d);
   const last = sheet.getLastRow();
   if (last < 2) return [];
   const values = sheet.getRange(2, 1, last - 1, 9).getValues();
@@ -179,18 +191,19 @@ function readLedger_() {
 // DASHBOARD — single read, returns everything the PWA needs
 // ============================================
 
-function getDashboardCached_() {
+function getDashboardCached_(d) {
   const cache = CacheService.getScriptCache();
-  const cached = cache.get(CACHE_KEY);
+  const key = cfg_(d).cacheKey;
+  const cached = cache.get(key);
   if (cached) return JSON.parse(cached);
-  const data = buildDashboard_();
-  try { cache.put(CACHE_KEY, JSON.stringify(data), CACHE_TTL_S); } catch (e) { /* non-fatal */ }
+  const data = buildDashboard_(d);
+  try { cache.put(key, JSON.stringify(data), CACHE_TTL_S); } catch (e) { /* non-fatal */ }
   return data;
 }
 
-function buildDashboard_() {
-  const people = readPeople_();
-  const ledger = readLedger_();
+function buildDashboard_(d) {
+  const people = readPeople_(d);
+  const ledger = readLedger_(d);
   const tz = Session.getScriptTimeZone();
   const today = startOfDay_(new Date());
 
@@ -315,12 +328,12 @@ function buildDashboard_() {
 // PERSON DETAIL — full ledger for one person
 // ============================================
 
-function getPersonDetail_(personId) {
+function getPersonDetail_(d, personId) {
   const tz = Session.getScriptTimeZone();
-  const people = readPeople_();
+  const people = readPeople_(d);
   const person = people.find((p) => p.personId === personId);
   if (!person) throw new Error('Person not found');
-  const ledger = readLedger_().filter((e) => e.personId === personId);
+  const ledger = readLedger_(d).filter((e) => e.personId === personId);
   ledger.sort(byDateDesc_);
   let totalCharged = 0, totalRepaid = 0;
   for (const e of ledger) {
@@ -353,43 +366,43 @@ function getPersonDetail_(personId) {
 // WRITES — people
 // ============================================
 
-function handleAddPerson_(data) {
+function handleAddPerson_(d, data) {
   const name = String(data.name || '').trim();
   if (!name) return jsonResponse({ ok: false, error: 'Name required' });
   const phone = normalizePhone_(data.phone);
   const currency = normCurrency_(data.currency);
   const notes = String(data.notes || '').trim();
 
-  const sheet = getPeopleSheet_();
+  const sheet = getPeopleSheet_(d);
   const personId = nextPersonId_(sheet);
   sheet.appendRow([personId, name, phone, currency, notes, false, new Date()]);
-  bustCache_();
+  bustCache_(d);
   return jsonResponse({ ok: true, personId: personId });
 }
 
-function handleUpdatePerson_(data) {
+function handleUpdatePerson_(d, data) {
   const personId = String(data.personId || '');
   if (!personId) return jsonResponse({ ok: false, error: 'personId required' });
-  const sheet = getPeopleSheet_();
+  const sheet = getPeopleSheet_(d);
   const row = findRowByValue_(sheet, P.id, personId);
   if (!row) return jsonResponse({ ok: false, error: 'Person not found' });
   if (data.name !== undefined)     sheet.getRange(row, P.name).setValue(String(data.name).trim());
   if (data.phone !== undefined)    sheet.getRange(row, P.phone).setValue(normalizePhone_(data.phone));
   if (data.currency !== undefined) sheet.getRange(row, P.currency).setValue(normCurrency_(data.currency));
   if (data.notes !== undefined)    sheet.getRange(row, P.notes).setValue(String(data.notes).trim());
-  bustCache_();
+  bustCache_(d);
   return jsonResponse({ ok: true });
 }
 
-function handleArchivePerson_(data) {
+function handleArchivePerson_(d, data) {
   const personId = String(data.personId || '');
   if (!personId) return jsonResponse({ ok: false, error: 'personId required' });
-  const sheet = getPeopleSheet_();
+  const sheet = getPeopleSheet_(d);
   const row = findRowByValue_(sheet, P.id, personId);
   if (!row) return jsonResponse({ ok: false, error: 'Person not found' });
   const archived = data.archived === false ? false : true;
   sheet.getRange(row, P.archived).setValue(archived);
-  bustCache_();
+  bustCache_(d);
   return jsonResponse({ ok: true });
 }
 
@@ -397,7 +410,7 @@ function handleArchivePerson_(data) {
 // WRITES — ledger entries
 // ============================================
 
-function handleAddEntry_(data) {
+function handleAddEntry_(d, data) {
   const personId = String(data.personId || '');
   if (!personId) return jsonResponse({ ok: false, error: 'personId required' });
   const type = String(data.type || '').toLowerCase();
@@ -420,7 +433,7 @@ function handleAddEntry_(data) {
   // round-trip on every entry — meaningful since Apps Script reads
   // are the slowest part of this backend.
 
-  const sheet = getLedgerSheet_();
+  const sheet = getLedgerSheet_(d);
   const entryId = nextEntryId_(sheet);
   sheet.appendRow([entryId, personId, date, type, amount, description, category, dueDate || '', new Date()]);
 
@@ -431,18 +444,18 @@ function handleAddEntry_(data) {
   sheet.getRange(newRow, L.createdAt).setNumberFormat('yyyy-mm-dd hh:mm');
   if (dueDate) sheet.getRange(newRow, L.dueDate).setNumberFormat('yyyy-mm-dd');
 
-  bustCache_();
+  bustCache_(d);
   return jsonResponse({ ok: true, entryId: entryId });
 }
 
-function handleDeleteEntry_(data) {
+function handleDeleteEntry_(d, data) {
   const entryId = String(data.entryId || '');
   if (!entryId) return jsonResponse({ ok: false, error: 'entryId required' });
-  const sheet = getLedgerSheet_();
+  const sheet = getLedgerSheet_(d);
   const row = findRowByValue_(sheet, L.id, entryId);
   if (!row) return jsonResponse({ ok: false, error: 'Entry not found' });
   sheet.deleteRow(row);
-  bustCache_();
+  bustCache_(d);
   return jsonResponse({ ok: true });
 }
 
@@ -538,8 +551,8 @@ function normCategory_(c) {
   return ALLOWED_CATEGORIES.indexOf(s) >= 0 ? s : '';
 }
 
-function bustCache_() {
-  try { CacheService.getScriptCache().remove(CACHE_KEY); } catch (e) { /* non-fatal */ }
+function bustCache_(d) {
+  try { CacheService.getScriptCache().remove(cfg_(d).cacheKey); } catch (e) { /* non-fatal */ }
 }
 
 function jsonResponse(obj) {
